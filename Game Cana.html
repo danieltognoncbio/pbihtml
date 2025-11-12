@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Jogo Agro Canavial</title>
+<style>
+  body {
+    background: #87c38f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  canvas {
+    background: #cce5cc;
+    border: 3px solid #3a5f0b;
+    image-rendering: pixelated; /* força estilo pixel */
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Configurações
+const gravity = 0.8;
+const jumpForce = -12;
+const playerSpeed = 4;
+
+// Personagem (pé de cana)
+const player = {
+  x: 50,
+  y: 300,
+  width: 20,
+  height: 40,
+  dy: 0,
+  onGround: false
+};
+
+// Plataformas
+const platforms = [
+  {x: 0, y: 350, width: 800, height: 50},
+  {x: 200, y: 280, width: 100, height: 20},
+  {x: 400, y: 220, width: 100, height: 20},
+  {x: 600, y: 160, width: 100, height: 20}
+];
+
+// Inimigos (insetos)
+const enemies = [
+  {x: 250, y: 260, width: 20, height: 20, dir: 1},
+  {x: 450, y: 200, width: 20, height: 20, dir: -1}
+];
+
+// Bandeira
+const flag = {x: 750, y: 120, width: 20, height: 40};
+
+let keys = {};
+let gameOver = false;
+let win = false;
+
+// Eventos teclado
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+// Funções de desenho pixel art
+function drawBackground() {
+  ctx.fillStyle = "#cce5cc";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Linhas simulando canavial
+  ctx.strokeStyle = "#228B22";
+  for (let i = 0; i < canvas.width; i += 10) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, canvas.height);
+    ctx.stroke();
+  }
+}
+
+function drawPlayer() {
+  // Tronco
+  ctx.fillStyle = "#8B4513";
+  ctx.fillRect(player.x + 6, player.y + 20, 8, 20);
+  // Folhas
+  ctx.fillStyle = "#228B22";
+  ctx.fillRect(player.x, player.y, 20, 20);
+}
+
+function drawEnemy(e) {
+  // Corpo do inseto
+  ctx.fillStyle = "#000";
+  ctx.fillRect(e.x, e.y, e.width, e.height);
+  // Antenas
+  ctx.strokeStyle = "#000";
+  ctx.beginPath();
+  ctx.moveTo(e.x + 5, e.y);
+  ctx.lineTo(e.x, e.y - 5);
+  ctx.moveTo(e.x + 15, e.y);
+  ctx.lineTo(e.x + 20, e.y - 5);
+  ctx.stroke();
+}
+
+function drawPlatform(p) {
+  ctx.fillStyle = "#8B4513";
+  ctx.fillRect(p.x, p.y, p.width, p.height);
+  // Textura
+  ctx.strokeStyle = "#654321";
+  for (let i = p.x; i < p.x + p.width; i += 10) {
+    ctx.beginPath();
+    ctx.moveTo(i, p.y);
+    ctx.lineTo(i, p.y + p.height);
+    ctx.stroke();
+  }
+}
+
+function drawFlag() {
+  // Haste
+  ctx.fillStyle = "#000";
+  ctx.fillRect(flag.x, flag.y, 4, flag.height);
+  // Bandeira
+  ctx.fillStyle = "#FFD700";
+  ctx.fillRect(flag.x + 4, flag.y, 16, 12);
+}
+
+// Loop do jogo
+function gameLoop() {
+  if (gameOver || win) {
+    ctx.fillStyle = "#000";
+    ctx.font = "30px Arial";
+    ctx.fillText(win ? "Você venceu! 🎉" : "Game Over!", 300, 200);
+    return;
+  }
+
+  drawBackground();
+
+  // Movimento jogador
+  if (keys["ArrowLeft"]) player.x -= playerSpeed;
+  if (keys["ArrowRight"]) player.x += playerSpeed;
+  if (keys["ArrowUp"] && player.onGround) {
+    player.dy = jumpForce;
+    player.onGround = false;
+  }
+
+  // Gravidade
+  player.dy += gravity;
+  player.y += player.dy;
+
+  // Colisão plataformas
+  player.onGround = false;
+  platforms.forEach(p => {
+    if (player.x < p.x + p.width &&
+        player.x + player.width > p.x &&
+        player.y + player.height > p.y &&
+        player.y + player.height < p.y + p.height + player.dy) {
+      player.y = p.y - player.height;
+      player.dy = 0;
+      player.onGround = true;
+    }
+  });
+
+  // Desenha plataformas
+  platforms.forEach(drawPlatform);
+
+  // Desenha jogador
+  drawPlayer();
+
+  // Inimigos
+  enemies.forEach(e => {
+    e.x += e.dir * 2;
+    if (e.x < 200 || e.x > 500) e.dir *= -1;
+    drawEnemy(e);
+
+    // Colisão com jogador
+    if (player.x < e.x + e.width &&
+        player.x + player.width > e.x &&
+        player.y < e.y + e.height &&
+        player.y + player.height > e.y) {
+      gameOver = true;
+    }
+  });
+
+  // Bandeira
+  drawFlag();
+
+  // Vitória
+  if (player.x + player.width > flag.x && player.y < flag.y + flag.height) {
+    win = true;
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
