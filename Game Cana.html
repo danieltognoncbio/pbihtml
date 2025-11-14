@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Jogo Agro Canavial</title>
+<title>Jogo AgroCBio </title>
 <style>
   body {
     background: #87c38f;
@@ -124,9 +124,9 @@ function startGame() {
 }
 
 function updateLevel() {
-  if (score > 10 && level === 1) { level = 2; obstacleSpeed = 6; }
-  if (score > 20 && level === 2) { level = 3; obstacleSpeed = 7; }
-  if (score > 30 && level === 3) { level = 4; obstacleSpeed = 8; }
+  if (score > 5 && level === 1) { level = 2; obstacleSpeed = 6; }
+  if (score > 12 && level === 2) { level = 3; obstacleSpeed = 7; }
+  if (score > 20 && level === 3) { level = 4; obstacleSpeed = 8; }
 }
 
 function saveScore() {
@@ -205,3 +205,4 @@ showRanking();
 </script>
 </body>
 </html>
+
