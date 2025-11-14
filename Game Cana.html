@@ -34,18 +34,26 @@
     font-size: 16px;
     display: none;
   }
+  #ranking {
+    margin-top: 15px;
+    font-size: 16px;
+    color: #000;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
-<div id="hud">Pontuação: 0 | Tempo: 0s</div>
+<div id="hud">Pontuação: 0 | Tempo: 0s | Nível: 1</div>
 <canvas id="gameCanvas" width="800" height="400"></canvas>
 <button id="restartBtn">Reiniciar</button>
+<div id="ranking"></div>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const hud = document.getElementById("hud");
 const restartBtn = document.getElementById("restartBtn");
+const rankingDiv = document.getElementById("ranking");
 
 // Configurações
 const gravity = 0.8;
@@ -54,26 +62,22 @@ const playerSpeed = 4;
 
 let score = 0;
 let time = 0;
+let level = 1;
+let obstacleSpeed = 5;
 let gameOver = false;
-let win = false;
 let gameStarted = false;
 
-// Personagem
 const player = { x: 50, y: 300, width: 20, height: 40, dy: 0, onGround: false };
-
-// Obstáculos dinâmicos
 let obstacles = [];
 let obstacleTimer = 0;
-
-// Eventos teclado
 let keys = {};
+
 document.addEventListener("keydown", e => {
   keys[e.key] = true;
   if (!gameStarted) startGame();
 });
 document.addEventListener("keyup", e => keys[e.key] = false);
 
-// Funções de desenho
 function drawBackground() {
   ctx.fillStyle = "#cce5cc";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -98,12 +102,12 @@ function drawObstacle(o) {
   ctx.fillRect(o.x, o.y, o.width, o.height);
 }
 
-// Reiniciar jogo
 function resetGame() {
   score = 0;
   time = 0;
+  level = 1;
+  obstacleSpeed = 5;
   gameOver = false;
-  win = false;
   player.x = 50;
   player.y = 300;
   player.dy = 0;
@@ -113,26 +117,47 @@ function resetGame() {
   requestAnimationFrame(gameLoop);
 }
 
-// Iniciar jogo
 function startGame() {
   gameStarted = true;
   setInterval(() => { if (!gameOver) time++; }, 1000);
   requestAnimationFrame(gameLoop);
 }
 
-// Loop do jogo
+function updateLevel() {
+  if (score > 10 && level === 1) { level = 2; obstacleSpeed = 6; }
+  if (score > 20 && level === 2) { level = 3; obstacleSpeed = 7; }
+  if (score > 30 && level === 3) { level = 4; obstacleSpeed = 8; }
+}
+
+function saveScore() {
+  let ranking = JSON.parse(localStorage.getItem("ranking")) || [];
+  ranking.push({ score, time });
+  ranking.sort((a,b) => b.score - a.score);
+  ranking = ranking.slice(0, 5);
+  localStorage.setItem("ranking", JSON.stringify(ranking));
+  showRanking();
+}
+
+function showRanking() {
+  let ranking = JSON.parse(localStorage.getItem("ranking")) || [];
+  rankingDiv.innerHTML = "<h3>Ranking:</h3>";
+  ranking.forEach((r, i) => {
+    rankingDiv.innerHTML += `${i+1}. Pontos: ${r.score} | Tempo: ${r.time}s<br>`;
+  });
+}
+
 function gameLoop() {
   if (gameOver) {
     ctx.fillStyle = "#000";
     ctx.font = "30px Arial";
     ctx.fillText("Game Over!", 300, 200);
     restartBtn.style.display = "block";
+    saveScore();
     return;
   }
 
   drawBackground();
 
-  // Movimento jogador
   if (keys["ArrowLeft"]) player.x -= playerSpeed;
   if (keys["ArrowRight"]) player.x += playerSpeed;
   if (keys["ArrowUp"] && player.onGround) {
@@ -140,18 +165,15 @@ function gameLoop() {
     player.onGround = false;
   }
 
-  // Gravidade
   player.dy += gravity;
   player.y += player.dy;
 
-  // Limite chão
   if (player.y + player.height > 350) {
     player.y = 350 - player.height;
     player.dy = 0;
     player.onGround = true;
   }
 
-  // Obstáculos dinâmicos
   obstacleTimer++;
   if (obstacleTimer > 100) {
     obstacles.push({ x: 800, y: 330, width: 30, height: 20 });
@@ -159,13 +181,13 @@ function gameLoop() {
   }
 
   obstacles.forEach((o, i) => {
-    o.x -= 5;
+    o.x -= obstacleSpeed;
     drawObstacle(o);
     if (o.x + o.width < 0) {
       obstacles.splice(i, 1);
       score++;
+      updateLevel();
     }
-    // Colisão
     if (player.x < o.x + o.width &&
         player.x + player.width > o.x &&
         player.y + player.height > o.y) {
@@ -174,13 +196,12 @@ function gameLoop() {
   });
 
   drawPlayer();
-
-  hud.textContent = `Pontuação: ${score} | Tempo: ${time}s`;
-
+  hud.textContent = `Pontuação: ${score} | Tempo: ${time}s | Nível: ${level}`;
   requestAnimationFrame(gameLoop);
 }
 
 restartBtn.addEventListener("click", resetGame);
+showRanking();
 </script>
 </body>
 </html>
