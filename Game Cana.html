@@ -1,11 +1,13 @@
 <style>
+    /* Estilo de Fundo - Tons de Verde/Marrom (Agrícola) */
     body {
         font-family: Arial, sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
         margin: 0;
-        background-color: #f4f4f4;
+        /* Fundo verde/marrom claro */
+        background-color: #e0f2d9; 
     }
     .game-container {
         display: grid;
@@ -13,10 +15,13 @@
         grid-template-rows: repeat(3, 100px);
         gap: 5px;
         margin-top: 20px;
+        /* Borda de madeira (Marrom) */
+        border: 10px solid #8b4513; 
+        box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
     }
     .cell {
         background-color: #fff;
-        border: 2px solid #333;
+        border: 2px solid #556b2f; /* Verde oliva escuro */
         display: flex;
         justify-content: center;
         align-items: center;
@@ -24,21 +29,31 @@
         font-weight: bold;
         cursor: pointer;
         user-select: none;
+        transition: background-color 0.1s;
+    }
+    .cell:hover {
+        background-color: #f0fff0; /* Quase branco no hover */
     }
     .status {
         margin-bottom: 10px;
         font-size: 20px;
         font-weight: bold;
+        color: #38761d; /* Verde escuro para o texto */
     }
     .reset-button {
         padding: 10px 20px;
         font-size: 16px;
         cursor: pointer;
         margin-top: 15px;
-        background-color: #007bff;
+        background-color: #6aa84f; /* Verde esmeralda */
         color: white;
         border: none;
         border-radius: 5px;
+        box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
+        transition: background-color 0.2s;
+    }
+    .reset-button:hover {
+        background-color: #38761d; /* Verde mais escuro no hover */
     }
 </style>
 
@@ -63,53 +78,64 @@
     let currentPlayer;
     let isGameActive;
 
+    const HUMAN_PLAYER = 'X';
+    const AI_PLAYER = 'O';
+
     const winningConditions = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Linhas
-        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colunas
-        [0, 4, 8], [2, 4, 6]             // Diagonais
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
     ];
 
     function startGame() {
         board = ['', '', '', '', '', '', '', '', ''];
-        currentPlayer = 'X';
+        currentPlayer = HUMAN_PLAYER;
         isGameActive = true;
         statusText.textContent = `Vez do Jogador ${currentPlayer}`;
         cells.forEach(cell => {
             cell.textContent = '';
+            // Remove a classe "vencedor" se você adicionar no futuro
             cell.removeEventListener('click', handleCellClick);
             cell.addEventListener('click', handleCellClick, { once: true });
         });
     }
 
+    // --- LÓGICA DO JOGADOR HUMANO ---
     function handleCellClick(clickedCellEvent) {
         const clickedCell = clickedCellEvent.target;
         const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
 
-        if (board[clickedCellIndex] !== '' || !isGameActive) {
+        if (board[clickedCellIndex] !== '' || !isGameActive || currentPlayer !== HUMAN_PLAYER) {
             return;
         }
 
-        handleMove(clickedCell, clickedCellIndex);
-        checkForWinner();
+        handleMove(clickedCell, clickedCellIndex, HUMAN_PLAYER);
+        if (checkForWinner()) return;
+        
+        // Passa a vez para a IA
+        currentPlayer = AI_PLAYER;
+        statusText.textContent = `Vez do Computador (${AI_PLAYER})...`;
+        
+        // Pequeno atraso para simular o "pensamento" da IA
+        setTimeout(makeAIMove, 500);
     }
 
-    function handleMove(cell, index) {
-        board[index] = currentPlayer;
-        cell.textContent = currentPlayer;
+    function handleMove(cell, index, player) {
+        board[index] = player;
+        cell.textContent = player;
+        // Permite que o 'O' (IA) tenha um estilo de cor diferente se você quiser
+        // cell.style.color = (player === AI_PLAYER) ? 'red' : 'blue'; 
     }
 
     function checkForWinner() {
         let roundWon = false;
         for (let i = 0; i < winningConditions.length; i++) {
-            const winCondition = winningConditions[i];
-            let a = board[winCondition[0]];
-            let b = board[winCondition[1]];
-            let c = board[winCondition[2]];
+            const [a, b, c] = winningConditions[i];
 
-            if (a === '' || b === '' || c === '') {
+            if (board[a] === '' || board[b] === '' || board[c] === '') {
                 continue;
             }
-            if (a === b && b === c) {
+            if (board[a] === board[b] && board[b] === board[c]) {
                 roundWon = true;
                 break;
             }
@@ -119,21 +145,88 @@
             statusText.textContent = `Jogador ${currentPlayer} VENCEU! 🎉`;
             isGameActive = false;
             cells.forEach(cell => cell.removeEventListener('click', handleCellClick));
-            return;
+            return true;
         }
 
         let roundDraw = !board.includes('');
         if (roundDraw) {
             statusText.textContent = `Empate! 🤝`;
             isGameActive = false;
-            return;
+            return true;
         }
 
-        // Troca de jogador
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        statusText.textContent = `Vez do Jogador ${currentPlayer}`;
+        return false;
     }
 
-    // Inicia o jogo quando o script é carregado
+    // --- LÓGICA DA IA (COMPUTADOR) ---
+    function makeAIMove() {
+        if (!isGameActive) return;
+
+        let bestMove = getBestMove();
+        
+        if (bestMove !== -1) {
+            const cell = cells[bestMove];
+            
+            // Remove o listener para que o clique manual não funcione na célula
+            cell.removeEventListener('click', handleCellClick);
+
+            handleMove(cell, bestMove, AI_PLAYER);
+
+            if (checkForWinner()) return;
+
+            // Volta a vez para o jogador humano
+            currentPlayer = HUMAN_PLAYER;
+            statusText.textContent = `Vez do Jogador ${currentPlayer}`;
+        }
+    }
+
+    function getEmptyCells() {
+        return board
+            .map((val, index) => (val === '') ? index : null)
+            .filter(val => val !== null);
+    }
+
+    // Função principal de IA (Lógica Simples de Bloqueio/Vitória)
+    function getBestMove() {
+        const emptyCells = getEmptyCells();
+        
+        // 1. Tentar Vencer (Se 'O' tem uma jogada vencedora)
+        let winningMove = findStrategicMove(AI_PLAYER);
+        if (winningMove !== -1) return winningMove;
+        
+        // 2. Bloquear o Jogador Humano (Se 'X' tem uma jogada vencedora)
+        let blockingMove = findStrategicMove(HUMAN_PLAYER);
+        if (blockingMove !== -1) return blockingMove;
+        
+        // 3. Tentar o Centro (Posição 4)
+        if (board[4] === '') return 4;
+
+        // 4. Jogada Aleatória em qualquer célula vazia
+        if (emptyCells.length > 0) {
+            const randomIndex = Math.floor(Math.random() * emptyCells.length);
+            return emptyCells[randomIndex];
+        }
+
+        return -1; // Não há movimentos disponíveis
+    }
+    
+    // Função auxiliar para encontrar jogada de vitória ou bloqueio
+    function findStrategicMove(player) {
+        for (let i = 0; i < winningConditions.length; i++) {
+            const [a, b, c] = winningConditions[i];
+            const line = [board[a], board[b], board[c]];
+            
+            // Verifica se a linha tem 2 peças do 'player' e 1 vazia
+            if (line.filter(p => p === player).length === 2 && line.includes('')) {
+                // Encontra o índice da célula vazia na condição de vitória
+                if (board[a] === '') return a;
+                if (board[b] === '') return b;
+                if (board[c] === '') return c;
+            }
+        }
+        return -1; // Nenhuma jogada estratégica encontrada
+    }
+
+    // Inicia o jogo
     startGame();
 </script>
