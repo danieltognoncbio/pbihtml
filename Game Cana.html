@@ -1,232 +1,212 @@
 <style>
-    /* Estilo de Fundo - Tons de Verde/Marrom (Agrícola) */
+    /* Estilos do cenário */
     body {
         font-family: Arial, sans-serif;
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin: 0;
-        /* Fundo verde/marrom claro */
-        background-color: #e0f2d9; 
-    }
-    .game-container {
-        display: grid;
-        grid-template-columns: repeat(3, 100px);
-        grid-template-rows: repeat(3, 100px);
-        gap: 5px;
-        margin-top: 20px;
-        /* Borda de madeira (Marrom) */
-        border: 10px solid #8b4513; 
-        box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
-    }
-    .cell {
-        background-color: #fff;
-        border: 2px solid #556b2f; /* Verde oliva escuro */
-        display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 60px;
-        font-weight: bold;
-        cursor: pointer;
-        user-select: none;
-        transition: background-color 0.1s;
+        margin: 0;
+        background-color: #87ceeb; /* Céu azul */
+        overflow: hidden; /* Importante para focar apenas no jogo */
     }
-    .cell:hover {
-        background-color: #f0fff0; /* Quase branco no hover */
+
+    #game-container {
+        width: 600px;
+        height: 200px;
+        border-bottom: 20px solid #38761d; /* Chão verde */
+        position: relative;
+        background-color: #a0d6b4; /* Fundo mais claro */
+        overflow: hidden;
     }
-    .status {
-        margin-bottom: 10px;
-        font-size: 20px;
-        font-weight: bold;
-        color: #38761d; /* Verde escuro para o texto */
+
+    /* Estilos do Jogador */
+    #player {
+        width: 30px;
+        height: 30px;
+        background-color: #ff0000; /* Vermelho */
+        position: absolute;
+        bottom: 0px;
+        left: 50px;
+        border-radius: 5px;
     }
-    .reset-button {
-        padding: 10px 20px;
-        font-size: 16px;
-        cursor: pointer;
+
+    /* Estilos do Obstáculo */
+    .obstacle {
+        width: 20px;
+        height: 40px;
+        background-color: #8b4513; /* Marrom (Tronco) */
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        border-radius: 3px;
+        animation: moveObstacle 2s infinite linear; /* Animação CSS para movimento */
+    }
+
+    /* O elemento que mostra o status do jogo */
+    #status-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        text-align: center;
+        z-index: 10;
+        display: none; /* Escondido por padrão */
+    }
+
+    #status-overlay button {
         margin-top: 15px;
-        background-color: #6aa84f; /* Verde esmeralda */
+        padding: 10px 20px;
+        font-size: 18px;
+        cursor: pointer;
+        background-color: #4CAF50;
         color: white;
         border: none;
         border-radius: 5px;
-        box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
-        transition: background-color 0.2s;
     }
-    .reset-button:hover {
-        background-color: #38761d; /* Verde mais escuro no hover */
+
+    /* Animação CSS para mover o obstáculo */
+    @keyframes moveObstacle {
+        0% { right: -20px; }
+        100% { right: 620px; } /* Percorre a largura do contêiner + seu próprio tamanho */
     }
 </style>
 
-<div class="status" id="status">Vez do Jogador X</div>
-<div class="game-container" id="game-container">
-    <div class="cell" data-index="0"></div>
-    <div class="cell" data-index="1"></div>
-    <div class="cell" data-index="2"></div>
-    <div class="cell" data-index="3"></div>
-    <div class="cell" data-index="4"></div>
-    <div class="cell" data-index="5"></div>
-    <div class="cell" data-index="6"></div>
-    <div class="cell" data-index="7"></div>
-    <div class="cell" data-index="8"></div>
-</div>
-<button class="reset-button" onclick="startGame()">Reiniciar Jogo</button>
-
-<script>
-    const cells = document.querySelectorAll('.cell');
-    const statusText = document.getElementById('status');
-    let board;
-    let currentPlayer;
-    let isGameActive;
-
-    const HUMAN_PLAYER = 'X';
-    const AI_PLAYER = 'O';
-
-    const winningConditions = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
-        [0, 4, 8], [2, 4, 6]
-    ];
-
-    function startGame() {
-        board = ['', '', '', '', '', '', '', '', ''];
-        currentPlayer = HUMAN_PLAYER;
-        isGameActive = true;
-        statusText.textContent = `Vez do Jogador ${currentPlayer}`;
-        cells.forEach(cell => {
-            cell.textContent = '';
-            // Remove a classe "vencedor" se você adicionar no futuro
-            cell.removeEventListener('click', handleCellClick);
-            cell.addEventListener('click', handleCellClick, { once: true });
-        });
-    }
-
-    // --- LÓGICA DO JOGADOR HUMANO ---
-    function handleCellClick(clickedCellEvent) {
-        const clickedCell = clickedCellEvent.target;
-        const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
-
-        if (board[clickedCellIndex] !== '' || !isGameActive || currentPlayer !== HUMAN_PLAYER) {
-            return;
-        }
-
-        handleMove(clickedCell, clickedCellIndex, HUMAN_PLAYER);
-        if (checkForWinner()) return;
-        
-        // Passa a vez para a IA
-        currentPlayer = AI_PLAYER;
-        statusText.textContent = `Vez do Computador (${AI_PLAYER})...`;
-        
-        // Pequeno atraso para simular o "pensamento" da IA
-        setTimeout(makeAIMove, 500);
-    }
-
-    function handleMove(cell, index, player) {
-        board[index] = player;
-        cell.textContent = player;
-        // Permite que o 'O' (IA) tenha um estilo de cor diferente se você quiser
-        // cell.style.color = (player === AI_PLAYER) ? 'red' : 'blue'; 
-    }
-
-    function checkForWinner() {
-        let roundWon = false;
-        for (let i = 0; i < winningConditions.length; i++) {
-            const [a, b, c] = winningConditions[i];
-
-            if (board[a] === '' || board[b] === '' || board[c] === '') {
-                continue;
-            }
-            if (board[a] === board[b] && board[b] === board[c]) {
-                roundWon = true;
-                break;
-            }
-        }
-
-        if (roundWon) {
-            statusText.textContent = `Jogador ${currentPlayer} VENCEU! 🎉`;
-            isGameActive = false;
-            cells.forEach(cell => cell.removeEventListener('click', handleCellClick));
-            return true;
-        }
-
-        let roundDraw = !board.includes('');
-        if (roundDraw) {
-            statusText.textContent = `Empate! 🤝`;
-            isGameActive = false;
-            return true;
-        }
-
-        return false;
-    }
-
-    // --- LÓGICA DA IA (COMPUTADOR) ---
-    function makeAIMove() {
-        if (!isGameActive) return;
-
-        let bestMove = getBestMove();
-        
-        if (bestMove !== -1) {
-            const cell = cells[bestMove];
-            
-            // Remove o listener para que o clique manual não funcione na célula
-            cell.removeEventListener('click', handleCellClick);
-
-            handleMove(cell, bestMove, AI_PLAYER);
-
-            if (checkForWinner()) return;
-
-            // Volta a vez para o jogador humano
-            currentPlayer = HUMAN_PLAYER;
-            statusText.textContent = `Vez do Jogador ${currentPlayer}`;
-        }
-    }
-
-    function getEmptyCells() {
-        return board
-            .map((val, index) => (val === '') ? index : null)
-            .filter(val => val !== null);
-    }
-
-    // Função principal de IA (Lógica Simples de Bloqueio/Vitória)
-    function getBestMove() {
-        const emptyCells = getEmptyCells();
-        
-        // 1. Tentar Vencer (Se 'O' tem uma jogada vencedora)
-        let winningMove = findStrategicMove(AI_PLAYER);
-        if (winningMove !== -1) return winningMove;
-        
-        // 2. Bloquear o Jogador Humano (Se 'X' tem uma jogada vencedora)
-        let blockingMove = findStrategicMove(HUMAN_PLAYER);
-        if (blockingMove !== -1) return blockingMove;
-        
-        // 3. Tentar o Centro (Posição 4)
-        if (board[4] === '') return 4;
-
-        // 4. Jogada Aleatória em qualquer célula vazia
-        if (emptyCells.length > 0) {
-            const randomIndex = Math.floor(Math.random() * emptyCells.length);
-            return emptyCells[randomIndex];
-        }
-
-        return -1; // Não há movimentos disponíveis
-    }
+<div id="game-container">
+    <div id="player"></div>
+    <div class="obstacle"></div>
     
-    // Função auxiliar para encontrar jogada de vitória ou bloqueio
-    function findStrategicMove(player) {
-        for (let i = 0; i < winningConditions.length; i++) {
-            const [a, b, c] = winningConditions[i];
-            const line = [board[a], board[b], board[c]];
+    <div id="status-overlay">
+        <span>Pressione ESPAÇO para Pular</span>
+        <button onclick="startGame()">Começar Jogo</button>
+    </div>
+</div>
+<script>
+    const player = document.getElementById('player');
+    const obstacle = document.querySelector('.obstacle');
+    const statusOverlay = document.getElementById('status-overlay');
+    const gameContainer = document.getElementById('game-container');
+    
+    let isJumping = false;
+    let gravity = 1; // Velocidade da gravidade
+    let jumpSpeed = 15; // Força do pulo
+    let playerY = 0; // Posição vertical do jogador
+    let gameLoop;
+    let isGameRunning = false;
+
+    // --- Lógica de Controle do Jogador ---
+    function jump() {
+        if (!isJumping && isGameRunning) {
+            isJumping = true;
+            let currentJumpSpeed = jumpSpeed;
             
-            // Verifica se a linha tem 2 peças do 'player' e 1 vazia
-            if (line.filter(p => p === player).length === 2 && line.includes('')) {
-                // Encontra o índice da célula vazia na condição de vitória
-                if (board[a] === '') return a;
-                if (board[b] === '') return b;
-                if (board[c] === '') return c;
-            }
+            // Loop para subida e descida
+            const jumpInterval = setInterval(() => {
+                // 1. Aplica a velocidade (subida)
+                playerY += currentJumpSpeed;
+                
+                // 2. Aplica a gravidade (diminui a velocidade)
+                currentJumpSpeed -= gravity;
+                
+                // 3. Verifica se atingiu o chão
+                if (playerY <= 0) {
+                    playerY = 0;
+                    isJumping = false;
+                    clearInterval(jumpInterval);
+                    currentJumpSpeed = jumpSpeed; // Reseta para o próximo pulo
+                }
+                
+                // Atualiza a posição no DOM
+                player.style.bottom = playerY + 'px';
+            }, 20); // Executa a cada 20ms
         }
-        return -1; // Nenhuma jogada estratégica encontrada
     }
 
-    // Inicia o jogo
-    startGame();
+    // --- Lógica de Colisão ---
+    function checkCollision() {
+        if (!isGameRunning) return;
+        
+        const playerRect = player.getBoundingClientRect();
+        const obstacleRect = obstacle.getBoundingClientRect();
+        const containerRect = gameContainer.getBoundingClientRect();
+
+        // Obtém as posições relativas ao container (mais fácil para PBI)
+        const playerBottom = playerY;
+        const playerLeft = 50;
+        const playerRight = playerLeft + 30; // Largura do player
+
+        // O obstáculo se move apenas horizontalmente (usando 'right')
+        // Cálculo da posição horizontal (left) do obstáculo dentro do container
+        const obstacleRightOffset = parseInt(window.getComputedStyle(obstacle).right);
+        const obstacleLeft = gameContainer.clientWidth - obstacleRightOffset - 20; // 20 é a largura do obstáculo
+        const obstacleRight = gameContainer.clientWidth - obstacleRightOffset;
+        const obstacleHeight = 40; 
+        
+        // Verifica a sobreposição de caixas (x e y)
+        const overlapX = playerRight > obstacleLeft && playerLeft < obstacleRight;
+        const overlapY = playerBottom < obstacleHeight;
+        
+        if (overlapX && overlapY) {
+            // COLISÃO! Fim de jogo
+            stopGame();
+        }
+    }
+
+    // --- Controle do Jogo ---
+    function startGame() {
+        if (isGameRunning) return;
+        
+        isGameRunning = true;
+        statusOverlay.style.display = 'none';
+        
+        // Coloca o player no chão
+        playerY = 0;
+        player.style.bottom = playerY + 'px';
+        
+        // Reinicia a animação do obstáculo
+        obstacle.style.animation = 'none';
+        obstacle.offsetHeight; // Força o reflow para reiniciar
+        obstacle.style.animation = 'moveObstacle 2s infinite linear';
+        
+        // Inicia o loop de detecção de colisão
+        gameLoop = setInterval(checkCollision, 50); 
+    }
+
+    function stopGame() {
+        if (!isGameRunning) return;
+
+        isGameRunning = false;
+        clearInterval(gameLoop);
+        
+        // Pausa a animação do obstáculo
+        obstacle.style.animationPlayState = 'paused';
+        
+        // Mostra a tela de fim de jogo
+        statusOverlay.querySelector('span').textContent = 'FIM DE JOGO!';
+        statusOverlay.querySelector('button').textContent = 'Jogar Novamente';
+        statusOverlay.style.display = 'flex';
+    }
+
+    // --- Listener de Teclado ---
+    document.addEventListener('keydown', (e) => {
+        // A tecla ESPAÇO tem o código 'Space' ou keyCode 32
+        if (e.code === 'Space' || e.keyCode === 32) {
+            if (!isGameRunning) {
+                startGame();
+            } else {
+                jump();
+                e.preventDefault(); // Impede que a barra de espaço role a página no PBI
+            }
+        }
+    });
+    
+    // Inicia com a tela de 'Começar Jogo'
+    statusOverlay.style.display = 'flex';
 </script>
